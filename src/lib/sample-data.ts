@@ -1,0 +1,205 @@
+/**
+ * In-memory demo fixtures for Aluwood Enterprises.
+ *
+ * Used by the dashboard UI before a database is connected so the job-order
+ * flow is fully clickable out of the box. Once `DATABASE_URL` is set and the
+ * schema is migrated + seeded (see prisma/seed.ts), swap these reads for
+ * Prisma queries — the shapes match the `types/poms.ts` interfaces exactly.
+ */
+
+import {
+  ALUWOOD_FINISHING_SEED,
+  ALUWOOD_PAPER_PRICE_SEED,
+  ALUWOOD_TENANT_SEED,
+  type Client,
+  type FinishingService,
+  type InventoryItem,
+  type JobOrder,
+  type PaperType,
+  type Tenant,
+} from "@/types/poms";
+
+export const DEMO_TENANT: Tenant = {
+  id: "tenant_aluwood",
+  name: ALUWOOD_TENANT_SEED.name,
+  slug: ALUWOOD_TENANT_SEED.slug,
+  jobPrefix: ALUWOOD_TENANT_SEED.jobPrefix,
+  location: ALUWOOD_TENANT_SEED.location,
+  contactPhone: ALUWOOD_TENANT_SEED.contactPhone,
+  contactEmail: null,
+  isActive: true,
+};
+
+export const DEMO_PAPER_TYPES: PaperType[] = ALUWOOD_PAPER_PRICE_SEED.map((paper, index) => ({
+  id: `paper_${index + 1}`,
+  tenantId: DEMO_TENANT.id,
+  name: paper.name,
+  category: paper.category,
+  gsm: paper.gsm,
+  unit: "PER_SHEET",
+  singleSidePrice: paper.singleSidePrice,
+  doubleSidePrice: paper.doubleSidePrice,
+  sortOrder: index,
+  isActive: true,
+}));
+
+export const DEMO_FINISHING_SERVICES: FinishingService[] = ALUWOOD_FINISHING_SEED.map((service, index) => ({
+  id: `finishing_${index + 1}`,
+  tenantId: DEMO_TENANT.id,
+  name: service.name,
+  unit: "PER_ITEM",
+  price: service.price,
+  doubleSidePrice: service.doubleSidePrice,
+  sortOrder: index,
+  isActive: true,
+}));
+
+export const DEMO_CLIENTS: Client[] = [
+  {
+    id: "client_1",
+    tenantId: DEMO_TENANT.id,
+    name: "Grace Wanjiru",
+    phone: "0711223344",
+    email: "grace@example.com",
+    address: "Nyahururu Town",
+    whatsappOptIn: true,
+    creditBalance: 0,
+    notes: null,
+  },
+  {
+    id: "client_2",
+    tenantId: DEMO_TENANT.id,
+    name: "Samuel Kariuki",
+    phone: "0722334455",
+    email: null,
+    address: "Ndaragwa",
+    whatsappOptIn: true,
+    creditBalance: 1500,
+    notes: "Regular client — church programs",
+  },
+  {
+    id: "client_3",
+    tenantId: DEMO_TENANT.id,
+    name: "Hope Academy",
+    phone: "0733445566",
+    email: "admin@hopeacademy.ac.ke",
+    address: "Ndaragwa House",
+    whatsappOptIn: false,
+    creditBalance: 0,
+    notes: "School — invoices termly",
+  },
+];
+
+export const DEMO_INVENTORY: InventoryItem[] = [
+  {
+    id: "inv_1",
+    tenantId: DEMO_TENANT.id,
+    name: "Art Card 300 GSM",
+    type: "PAPER",
+    unit: "ream",
+    quantityOnHand: 4,
+    reorderLevel: 5,
+    costPerUnit: 1800,
+    paperTypeId: "paper_5",
+  },
+  {
+    id: "inv_2",
+    tenantId: DEMO_TENANT.id,
+    name: "Bond A4 80gsm",
+    type: "PAPER",
+    unit: "ream",
+    quantityOnHand: 22,
+    reorderLevel: 10,
+    costPerUnit: 650,
+    paperTypeId: "paper_10",
+  },
+  {
+    id: "inv_3",
+    tenantId: DEMO_TENANT.id,
+    name: "Black Toner Cartridge",
+    type: "TONER",
+    unit: "cartridge",
+    quantityOnHand: 1,
+    reorderLevel: 2,
+    costPerUnit: 9500,
+    paperTypeId: null,
+  },
+];
+
+export const DEMO_JOB_ORDERS: JobOrder[] = [
+  {
+    id: "job_1",
+    tenantId: DEMO_TENANT.id,
+    jobNumber: "POMS-ALU-1001",
+    clientId: "client_1",
+    status: "IN_PRODUCTION",
+    paymentStatus: "PARTIAL",
+    subtotal: 4200,
+    vatRate: 0,
+    vatAmount: 0,
+    totalAmount: 4200,
+    amountPaid: 2000,
+    balanceDue: 2200,
+    dueDate: null,
+    notes: "Wedding invitation cards — 150 pcs, Art Card 300 GSM",
+    createdById: null,
+    assignedToId: null,
+    createdAt: "2026-09-28T08:30:00.000Z",
+    updatedAt: "2026-09-29T10:00:00.000Z",
+    items: [
+      {
+        id: "item_1",
+        jobOrderId: "job_1",
+        paperTypeId: "paper_5",
+        description: "Art Card 300 GSM",
+        sides: "DOUBLE",
+        quantity: 150,
+        unitPrice: 40,
+        lineTotal: 6000,
+        sortOrder: 0,
+      },
+    ],
+  },
+  {
+    id: "job_2",
+    tenantId: DEMO_TENANT.id,
+    jobNumber: "POMS-ALU-1002",
+    clientId: "client_2",
+    status: "READY_FOR_COLLECTION",
+    paymentStatus: "UNPAID",
+    subtotal: 1500,
+    vatRate: 0,
+    vatAmount: 0,
+    totalAmount: 1500,
+    amountPaid: 0,
+    balanceDue: 1500,
+    dueDate: null,
+    notes: "Church program booklets, 100 copies, Bond A4 B&W",
+    createdById: null,
+    assignedToId: null,
+    createdAt: "2026-09-29T09:00:00.000Z",
+    updatedAt: "2026-09-30T14:00:00.000Z",
+    items: [],
+  },
+  {
+    id: "job_3",
+    tenantId: DEMO_TENANT.id,
+    jobNumber: "POMS-ALU-1003",
+    clientId: "client_3",
+    status: "QUOTATION",
+    paymentStatus: "UNPAID",
+    subtotal: 8000,
+    vatRate: 0,
+    vatAmount: 0,
+    totalAmount: 8000,
+    amountPaid: 0,
+    balanceDue: 8000,
+    dueDate: null,
+    notes: "Termly exam papers — awaiting confirmation",
+    createdById: null,
+    assignedToId: null,
+    createdAt: "2026-09-30T11:15:00.000Z",
+    updatedAt: "2026-09-30T11:15:00.000Z",
+    items: [],
+  },
+];

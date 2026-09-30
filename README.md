@@ -1,36 +1,77 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# POMS — Printers Operations Management System
 
-## Getting Started
+Multi-tenant SaaS for commercial digital print shops: serialized job orders,
+production tracking, inventory/consumables, staff, financial ledgers, and
+automated client messaging (SMS / WhatsApp). First tenant: **Aluwood
+Enterprises** (Ndaragwa House, Mezzanine Floor MF24 · 0720115999).
 
-First, run the development server:
+## Stack
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+- Next.js (App Router) + TypeScript + Tailwind CSS
+- Prisma ORM + PostgreSQL (Supabase-compatible)
+- Zod for input validation
+
+## Project layout
+
+```
+prisma/schema.prisma        Multi-tenant DB schema (Tenants, Users, Clients,
+                             PaperType/FinishingService price matrix,
+                             Inventory, JobOrders, OrderItems, Transactions,
+                             Notifications, ActivityLog)
+prisma/seed.ts               Seeds the Aluwood Enterprises tenant + price list
+src/types/poms.ts            Shared domain types + Aluwood pricing seed data
+src/lib/services/priceCalculator.ts   Pure pricing engine (paper/finishing → quote)
+src/lib/prisma.ts             Prisma client singleton
+src/lib/sample-data.ts        In-memory demo fixtures (used until DB is wired up)
+src/app/dashboard/...         Owner dashboard, job order list/detail/new, price list,
+                               clients, inventory, staff
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Getting started
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+npm install
+npm run dev
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Open http://localhost:3000 — the dashboard at `/dashboard` runs entirely on
+in-memory demo data (`src/lib/sample-data.ts`), so it works without a database.
 
-## Learn More
+### Connecting a real database
 
-To learn more about Next.js, take a look at the following resources:
+1. Copy `.env.example` to `.env` and set `DATABASE_URL` to your Postgres
+   instance (Supabase, Neon, RDS, or local Postgres).
+2. Run the migration and seed:
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+   ```bash
+   npm run db:migrate   # creates tables from prisma/schema.prisma
+   npm run db:seed      # seeds the Aluwood Enterprises tenant + price matrix
+   npm run db:studio    # optional: browse data in Prisma Studio
+   ```
+3. Swap the reads in `src/app/dashboard/**` from `src/lib/sample-data.ts` to
+   Prisma queries (`src/lib/prisma.ts`) as each screen is wired up.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## What's implemented so far
 
-## Deploy on Vercel
+- Database schema for the full workflow (Quotation → Pending Deposit → In
+  Production → Ready for Collection → Delivered → Completed).
+- Aluwood Enterprises price matrix seeded exactly as specified (paper types,
+  Bond A3/A4, Sticker, Ivory, Own Paper, Lamination finishing).
+- Pricing engine (`calculateQuote`) used by the New Job Order screen for live
+  line-item + VAT totals.
+- Dashboard: revenue/receivables/low-stock stats, job status pipeline, job
+  list, job detail with financial ledger, price list, clients, inventory,
+  staff placeholder screens.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Not yet implemented (next steps)
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- Authentication & role-based access control (Owner/Admin/Accountant/Production/Worker).
+- API routes / server actions that persist Job Orders, Transactions, and Stock
+  Movements through Prisma (currently the New Job Order screen is a client-side
+  preview only).
+- SMS / WhatsApp notification gateway integration (Africa's Talking / Twilio /
+  WhatsApp Business API) — the job detail page has placeholder, disabled
+  notification buttons marking where this plugs in.
+- PDF quotation/invoice generation.
+- Serialized job number generation service backed by `JobOrderCounter`
+  (schema is in place; needs a transactional increment function + API route).
