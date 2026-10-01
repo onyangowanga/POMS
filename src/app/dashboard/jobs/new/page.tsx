@@ -6,6 +6,7 @@ import { calculateQuote, PriceCalculationError } from "@/lib/services/priceCalcu
 import { formatKes } from "@/lib/format";
 import { readJsonResponse } from "@/lib/http";
 import { normalizeKenyanPhone } from "@/lib/phone";
+import { formatWhatsAppJobMessage } from "@/lib/whatsapp";
 import type { PriceLineRequest, SideOption } from "@/types/poms";
 
 type DraftLine = PriceLineRequest & { key: string; isOther?: boolean };
@@ -28,6 +29,7 @@ export default function NewJobOrderPage() {
   const [orderType, setOrderType] = useState<"QUOTATION" | "ORDER">("QUOTATION");
   const [lines, setLines] = useState<DraftLine[]>([emptyLine()]);
   const [submittedJobNumber, setSubmittedJobNumber] = useState("");
+  const [submittedJobId, setSubmittedJobId] = useState("");
   const [whatsappUrl, setWhatsappUrl] = useState("");
   const [error, setError] = useState("");
 
@@ -63,10 +65,12 @@ export default function NewJobOrderPage() {
     const result = await response.json();
     if (!response.ok) { setError(result.error ?? "Unable to create job order."); return; }
     setSubmittedJobNumber(result.jobNumber);
-    setWhatsappUrl(`https://wa.me/${normalizeKenyanPhone(clientPhone).replace(/\D/g, "")}?text=${encodeURIComponent(`Hello ${clientName}, your POMS ${orderType === "ORDER" ? "order/invoice" : "quotation"} ${result.jobNumber} totals ${formatKes(quote.quote.totalAmount)}. Thank you, Aluwood Enterprises.`)}`);
+    setSubmittedJobId(result.id);
+    const message = formatWhatsAppJobMessage({ kind: orderType, reference: result.jobNumber, clientName, lines: quote.quote.lines, subtotal: quote.quote.subtotal, discountAmount: quote.quote.discountAmount, vatAmount: quote.quote.vatAmount, totalAmount: quote.quote.totalAmount });
+    setWhatsappUrl(`https://wa.me/${normalizeKenyanPhone(clientPhone).replace(/\D/g, "")}?text=${encodeURIComponent(message)}`);
   }
 
-  if (submittedJobNumber) return <div className="mx-auto max-w-lg rounded-xl border border-emerald-200 bg-emerald-50 p-8 text-center"><h1 className="text-lg font-semibold text-emerald-800">{orderType === "ORDER" ? "Order Booked" : "Quotation Created"}</h1><p className="mt-2 text-sm text-emerald-700"><strong>{submittedJobNumber}</strong> has been saved.</p><div className="mt-6 flex flex-col gap-2"><a href={whatsappUrl} target="_blank" rel="noreferrer" className="rounded-lg bg-green-600 px-4 py-2 text-sm font-semibold text-white">Open WhatsApp message</a><Link href="/dashboard/jobs" className="rounded-lg bg-emerald-700 px-4 py-2 text-sm font-semibold text-white">Back to Job Orders</Link></div></div>;
+  if (submittedJobNumber) return <div className="mx-auto max-w-lg rounded-xl border border-emerald-200 bg-emerald-50 p-8 text-center"><h1 className="text-lg font-semibold text-emerald-800">{orderType === "ORDER" ? "Order Booked" : "Quotation Created"}</h1><p className="mt-2 text-sm text-emerald-700"><strong>{submittedJobNumber}</strong> has been saved.</p><div className="mt-6 flex flex-col gap-2"><a href={whatsappUrl} target="_blank" rel="noreferrer" className="rounded-lg bg-green-600 px-4 py-2 text-sm font-semibold text-white">Open WhatsApp message</a><Link href={`/dashboard/jobs/${submittedJobId}`} className="rounded-lg bg-teal-700 px-4 py-2 text-sm font-semibold text-white">View quotation</Link><Link href="/dashboard/jobs" className="rounded-lg bg-emerald-700 px-4 py-2 text-sm font-semibold text-white">Back to Job Orders</Link></div></div>;
 
   return <div className="mx-auto max-w-4xl space-y-6">
     <div className="flex flex-wrap items-center gap-2 rounded-xl border border-slate-200 bg-white p-4 shadow-sm"><span className="mr-2 text-sm font-semibold text-slate-900">Booking type</span><button type="button" onClick={() => setOrderType("QUOTATION")} className={`rounded-full px-3 py-1.5 text-xs font-medium ${orderType === "QUOTATION" ? "bg-slate-900 text-white" : "bg-slate-100 text-slate-600"}`}>Quotation only</button><button type="button" onClick={() => setOrderType("ORDER")} className={`rounded-full px-3 py-1.5 text-xs font-medium ${orderType === "ORDER" ? "bg-teal-700 text-white" : "bg-slate-100 text-slate-600"}`}>Book as order</button></div>

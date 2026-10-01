@@ -3,6 +3,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { calculateQuote } from "@/lib/services/priceCalculator";
 import { normalizeKenyanPhone } from "@/lib/phone";
+import { inventoryQuantityForPrintedSheets } from "@/lib/inventory";
 
 const sidesSchema = z.enum(["SINGLE", "DOUBLE"]).optional();
 const itemSchema = z.object({
@@ -84,8 +85,9 @@ export async function POST(request: Request) {
         if (!item.paperTypeId) continue;
         const inventory = await tx.inventoryItem.findFirst({ where: { tenantId: tenant.id, paperTypeId: item.paperTypeId } });
         if (!inventory) continue;
-        await tx.inventoryItem.update({ where: { id: inventory.id }, data: { quantityOnHand: { decrement: item.quantity } } });
-        await tx.stockMovement.create({ data: { tenantId: tenant.id, inventoryItemId: inventory.id, type: "STOCK_OUT", quantity: item.quantity, reason: `Consumed by ${createdJob.jobNumber}`, jobOrderId: createdJob.id } });
+        const stockQuantity = inventoryQuantityForPrintedSheets(Number(item.quantity), inventory.unit);
+        await tx.inventoryItem.update({ where: { id: inventory.id }, data: { quantityOnHand: { decrement: stockQuantity } } });
+        await tx.stockMovement.create({ data: { tenantId: tenant.id, inventoryItemId: inventory.id, type: "STOCK_OUT", quantity: stockQuantity, reason: `Consumed by ${createdJob.jobNumber}`, jobOrderId: createdJob.id } });
       }
     }
     return createdJob;

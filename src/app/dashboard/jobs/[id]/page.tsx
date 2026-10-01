@@ -3,15 +3,25 @@ import { notFound } from "next/navigation";
 import { JobStatusBadge, PaymentStatusBadge } from "@/components/dashboard/StatusBadges";
 import { JobStatusActions } from "@/components/dashboard/JobStatusActions";
 import { formatDate, formatKes } from "@/lib/format";
-import { DEMO_CLIENTS, DEMO_JOB_ORDERS } from "@/lib/sample-data";
+import { prisma } from "@/lib/prisma";
 import { JOB_ORDER_STATUSES } from "@/types/poms";
 
 export default async function JobOrderDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const job = DEMO_JOB_ORDERS.find((j) => j.id === id);
-  if (!job) notFound();
-
-  const client = DEMO_CLIENTS.find((c) => c.id === job.clientId);
+  const storedJob = await prisma.jobOrder.findUnique({ where: { id }, include: { client: true, items: true } });
+  if (!storedJob) notFound();
+  const job = {
+    ...storedJob,
+    subtotal: Number(storedJob.subtotal),
+    discountAmount: Number(storedJob.discountAmount),
+    vatRate: Number(storedJob.vatRate),
+    vatAmount: Number(storedJob.vatAmount),
+    totalAmount: Number(storedJob.totalAmount),
+    amountPaid: Number(storedJob.amountPaid),
+    balanceDue: Number(storedJob.balanceDue),
+    items: storedJob.items.map((item) => ({ ...item, quantity: Number(item.quantity), unitPrice: Number(item.unitPrice), lineTotal: Number(item.lineTotal) })),
+  };
+  const client = job.client;
   const currentStepIndex = JOB_ORDER_STATUSES.indexOf(job.status);
 
   return (
@@ -22,7 +32,7 @@ export default async function JobOrderDetailPage({ params }: { params: Promise<{
             ← All job orders
           </Link>
           <h1 className="mt-1 text-xl font-semibold text-slate-900">{job.jobNumber}</h1>
-          <p className="text-sm text-slate-500">{client?.name} · {client?.phone}</p>
+          <p className="text-sm text-slate-500">{client.name} · {client.phone}</p>
         </div>
         <div className="flex gap-2">
           <JobStatusBadge status={job.status} />
@@ -91,6 +101,10 @@ export default async function JobOrderDetailPage({ params }: { params: Promise<{
               <div className="flex justify-between">
                 <dt className="text-slate-500">Subtotal</dt>
                 <dd className="text-slate-900">{formatKes(job.subtotal)}</dd>
+              </div>
+              <div className="flex justify-between text-red-600">
+                <dt>Discount</dt>
+                <dd>-{formatKes(job.discountAmount)}</dd>
               </div>
               <div className="flex justify-between">
                 <dt className="text-slate-500">VAT ({job.vatRate}%)</dt>
