@@ -6,7 +6,7 @@ import { formatKes } from "@/lib/format";
 import clsx from "@/lib/clsx";
 import { readJsonResponse } from "@/lib/http";
 
-type InventoryItem = { id: string; name: string; type: "PAPER" | "TONER" | "INK" | "OTHER"; unit: string; quantityOnHand: number; reorderLevel: number; costPerUnit: number; paperTypeId?: string | null };
+type InventoryItem = { id: string; name: string; type: "PAPER" | "TONER" | "INK" | "OTHER"; size?: string | null; unit: string; quantityOnHand: number; reorderLevel: number; costPerUnit: number; paperTypeId?: string | null };
 type PaperType = { id: string; name: string };
 
 export function InventoryManager() {
@@ -15,7 +15,7 @@ export function InventoryManager() {
   const [items, setItems] = useState<InventoryItem[]>([]);
   const [paperTypes, setPaperTypes] = useState<PaperType[]>([]);
   const [message, setMessage] = useState("");
-  const [draft, setDraft] = useState({ name: "", type: "PAPER", unit: "ream", quantity: "", reorder: "", cost: "", paperTypeId: "" });
+  const [draft, setDraft] = useState({ name: "", type: "PAPER", size: "A4", unit: "ream", quantity: "", reorder: "", cost: "", paperTypeId: "" });
 
   async function loadInventory() {
     try { const result = await readJsonResponse<{ inventory: InventoryItem[]; paperTypes: PaperType[] }>(fetch("/api/catalog")); setItems(result.inventory); setPaperTypes(result.paperTypes); }
@@ -35,9 +35,9 @@ export function InventoryManager() {
 
   async function addItem(event: React.FormEvent) {
     event.preventDefault();
-    const response = await fetch("/api/catalog", { method: "POST", headers: { "Content-Type": "application/json", "x-poms-role": user?.role ?? "" }, body: JSON.stringify({ kind: "inventory", name: draft.name, type: draft.type, unit: draft.unit, quantityOnHand: Number(draft.quantity), reorderLevel: Number(draft.reorder), costPerUnit: Number(draft.cost), paperTypeId: draft.paperTypeId || null }) });
+    const response = await fetch("/api/catalog", { method: "POST", headers: { "Content-Type": "application/json", "x-poms-role": user?.role ?? "" }, body: JSON.stringify({ kind: "inventory", name: draft.name, type: draft.type, size: draft.type === "PAPER" ? draft.size : null, unit: draft.unit, quantityOnHand: Number(draft.quantity), reorderLevel: Number(draft.reorder), costPerUnit: Number(draft.cost), paperTypeId: draft.type === "PAPER" ? draft.paperTypeId || null : null }) });
     setMessage(response.ok ? "Inventory item added." : "Only the owner can add inventory.");
-    if (response.ok) { setDraft({ name: "", type: "PAPER", unit: "ream", quantity: "", reorder: "", cost: "", paperTypeId: "" }); await loadInventory(); }
+    if (response.ok) { setDraft({ name: "", type: "PAPER", size: "A4", unit: "ream", quantity: "", reorder: "", cost: "", paperTypeId: "" }); await loadInventory(); }
   }
 
   return (
@@ -47,8 +47,8 @@ export function InventoryManager() {
       {isOwner ? <form onSubmit={addItem} className="grid gap-3 rounded-xl border border-teal-100 bg-teal-50/50 p-4 sm:grid-cols-6">
         <input required value={draft.name} onChange={(event) => setDraft({ ...draft, name: event.target.value })} placeholder="Item name" className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm" />
         <select value={draft.type} onChange={(event) => setDraft({ ...draft, type: event.target.value })} className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm"><option value="PAPER">Paper</option><option value="TONER">Toner</option><option value="INK">Ink</option><option value="OTHER">Other</option></select>
+        {draft.type === "PAPER" ? <><select value={draft.paperTypeId} onChange={(event) => setDraft({ ...draft, paperTypeId: event.target.value })} className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm"><option value="">Paper type</option>{paperTypes.map((paper) => <option key={paper.id} value={paper.id}>{paper.name}</option>)}</select><select value={draft.size} onChange={(event) => setDraft({ ...draft, size: event.target.value })} className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm"><option>A4</option><option>A3</option><option>Other</option></select></> : null}
         <input required value={draft.unit} onChange={(event) => setDraft({ ...draft, unit: event.target.value })} placeholder="Unit" className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm" />
-        <select value={draft.paperTypeId} onChange={(event) => setDraft({ ...draft, paperTypeId: event.target.value })} className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm"><option value="">Link paper type (optional)</option>{paperTypes.map((paper) => <option key={paper.id} value={paper.id}>{paper.name}</option>)}</select>
         <input required type="number" min="0" value={draft.quantity} onChange={(event) => setDraft({ ...draft, quantity: event.target.value })} placeholder="Opening stock" className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm" />
         <input required type="number" min="0" value={draft.reorder} onChange={(event) => setDraft({ ...draft, reorder: event.target.value })} placeholder="Reorder level" className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm" />
         <button className="rounded-md bg-teal-700 px-3 py-2 text-sm font-semibold text-white hover:bg-teal-800">Add stock</button>

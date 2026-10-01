@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
+import { normalizeKenyanPhone } from "@/lib/phone";
 
 const clientSchema = z.object({
   name: z.string().min(2),
@@ -24,10 +25,11 @@ export async function POST(request: Request) {
   const tenant = await prisma.tenant.findUniqueOrThrow({ where: { slug: "aluwood" } });
   const parsed = clientSchema.safeParse(await request.json());
   if (!parsed.success) return NextResponse.json({ error: parsed.error.issues[0]?.message ?? "Invalid client" }, { status: 400 });
+  const phone = normalizeKenyanPhone(parsed.data.phone);
   const client = await prisma.client.upsert({
-    where: { tenantId_phone: { tenantId: tenant.id, phone: parsed.data.phone } },
+    where: { tenantId_phone: { tenantId: tenant.id, phone } },
     update: { name: parsed.data.name, email: parsed.data.email || null, address: parsed.data.address || null },
-    create: { tenantId: tenant.id, name: parsed.data.name, phone: parsed.data.phone, email: parsed.data.email || null, address: parsed.data.address || null },
+    create: { tenantId: tenant.id, name: parsed.data.name, phone, email: parsed.data.email || null, address: parsed.data.address || null },
   });
   return NextResponse.json({ ...client, creditBalance: Number(client.creditBalance) }, { status: 201 });
 }

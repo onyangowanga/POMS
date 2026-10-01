@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { calculateQuote, PriceCalculationError } from "@/lib/services/priceCalculator";
 import { formatKes } from "@/lib/format";
 import { readJsonResponse } from "@/lib/http";
+import { normalizeKenyanPhone } from "@/lib/phone";
 import type { PriceLineRequest, SideOption } from "@/types/poms";
 
 type DraftLine = PriceLineRequest & { key: string; isOther?: boolean };
@@ -62,7 +63,7 @@ export default function NewJobOrderPage() {
     const result = await response.json();
     if (!response.ok) { setError(result.error ?? "Unable to create job order."); return; }
     setSubmittedJobNumber(result.jobNumber);
-    setWhatsappUrl(`https://wa.me/${clientPhone.replace(/\D/g, "")}?text=${encodeURIComponent(`Hello ${clientName}, your POMS ${orderType === "ORDER" ? "order/invoice" : "quotation"} ${result.jobNumber} totals ${formatKes(quote.quote.totalAmount)}. Thank you, Aluwood Enterprises.`)}`);
+    setWhatsappUrl(`https://wa.me/${normalizeKenyanPhone(clientPhone).replace(/\D/g, "")}?text=${encodeURIComponent(`Hello ${clientName}, your POMS ${orderType === "ORDER" ? "order/invoice" : "quotation"} ${result.jobNumber} totals ${formatKes(quote.quote.totalAmount)}. Thank you, Aluwood Enterprises.`)}`);
   }
 
   if (submittedJobNumber) return <div className="mx-auto max-w-lg rounded-xl border border-emerald-200 bg-emerald-50 p-8 text-center"><h1 className="text-lg font-semibold text-emerald-800">{orderType === "ORDER" ? "Order Booked" : "Quotation Created"}</h1><p className="mt-2 text-sm text-emerald-700"><strong>{submittedJobNumber}</strong> has been saved.</p><div className="mt-6 flex flex-col gap-2"><a href={whatsappUrl} target="_blank" rel="noreferrer" className="rounded-lg bg-green-600 px-4 py-2 text-sm font-semibold text-white">Open WhatsApp message</a><Link href="/dashboard/jobs" className="rounded-lg bg-emerald-700 px-4 py-2 text-sm font-semibold text-white">Back to Job Orders</Link></div></div>;

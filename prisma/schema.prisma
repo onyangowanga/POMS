@@ -175,6 +175,7 @@ model InventoryItem {
   tenant        Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   name          String
   type          InventoryType @default(OTHER)
+  size          String?
   unit          String // e.g. "ream", "sheet", "cartridge"
   quantityOnHand Decimal      @default(0) @db.Decimal(12, 2)
   reorderLevel  Decimal       @default(0) @db.Decimal(12, 2)

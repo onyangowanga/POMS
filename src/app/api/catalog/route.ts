@@ -25,6 +25,7 @@ const inventorySchema = z.object({
   id: z.string().optional(),
   name: z.string().min(2),
   type: z.enum(["PAPER", "TONER", "INK", "OTHER"]),
+  size: z.string().optional().nullable(),
   unit: z.string().min(1),
   quantityOnHand: z.number().nonnegative(),
   reorderLevel: z.number().nonnegative(),
@@ -77,8 +78,11 @@ export async function POST(request: Request) {
     const item = await prisma.finishingService.create({ data: { tenantId: tenant.id, name: data.name, price: data.price, doubleSidePrice: data.doubleSidePrice } });
     return NextResponse.json(item, { status: 201 });
   }
-  const item = await prisma.inventoryItem.create({ data: { tenantId: tenant.id, name: data.name, type: data.type, unit: data.unit, quantityOnHand: data.quantityOnHand, reorderLevel: data.reorderLevel, costPerUnit: data.costPerUnit, paperTypeId: data.paperTypeId } });
-  if (data.quantityOnHand > 0) await prisma.stockMovement.create({ data: { tenantId: tenant.id, inventoryItemId: item.id, type: "STOCK_IN", quantity: data.quantityOnHand, reason: "Opening/manual stock entry" } });
+  const item = await prisma.inventoryItem.create({ data: { tenantId: tenant.id, name: data.name, type: data.type, size: data.size, unit: data.unit, quantityOnHand: data.quantityOnHand, reorderLevel: data.reorderLevel, costPerUnit: data.costPerUnit, paperTypeId: data.paperTypeId } });
+  if (data.quantityOnHand > 0) {
+    await prisma.stockMovement.create({ data: { tenantId: tenant.id, inventoryItemId: item.id, type: "STOCK_IN", quantity: data.quantityOnHand, reason: "Opening/manual stock entry" } });
+    await prisma.purchase.create({ data: { tenantId: tenant.id, description: `Stock: ${data.name}`, category: "Inventory", amount: data.quantityOnHand * data.costPerUnit, method: "CASH" } });
+  }
   return NextResponse.json(item, { status: 201 });
 }
 
@@ -103,7 +107,7 @@ export async function PATCH(request: Request) {
   const data = inventorySchema.parse(payload);
   if (!data.id) return NextResponse.json({ error: "An item id is required" }, { status: 400 });
   const existing = await prisma.inventoryItem.findFirstOrThrow({ where: { id: data.id, tenantId: tenant.id } });
-  const updated = await prisma.inventoryItem.update({ where: { id: data.id }, data: { name: data.name, type: data.type, unit: data.unit, quantityOnHand: data.quantityOnHand, reorderLevel: data.reorderLevel, costPerUnit: data.costPerUnit, paperTypeId: data.paperTypeId } });
+  const updated = await prisma.inventoryItem.update({ where: { id: data.id }, data: { name: data.name, type: data.type, size: data.size, unit: data.unit, quantityOnHand: data.quantityOnHand, reorderLevel: data.reorderLevel, costPerUnit: data.costPerUnit, paperTypeId: data.paperTypeId } });
   const difference = data.quantityOnHand - Number(existing.quantityOnHand);
   if (difference !== 0) await prisma.stockMovement.create({ data: { tenantId: tenant.id, inventoryItemId: data.id, type: difference > 0 ? "STOCK_IN" : "ADJUSTMENT", quantity: Math.abs(difference), reason: "Manual inventory adjustment" } });
   return NextResponse.json(updated);

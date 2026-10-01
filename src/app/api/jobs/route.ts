@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { calculateQuote } from "@/lib/services/priceCalculator";
+import { normalizeKenyanPhone } from "@/lib/phone";
 
 const sidesSchema = z.enum(["SINGLE", "DOUBLE"]).optional();
 const itemSchema = z.object({
@@ -22,10 +23,27 @@ const jobSchema = z.object({
   notes: z.string().optional(),
 });
 
+export async function GET() {
+  const tenant = await prisma.tenant.findUniqueOrThrow({ where: { slug: "aluwood" } });
+  const jobs = await prisma.jobOrder.findMany({ where: { tenantId: tenant.id }, include: { client: true, items: true }, orderBy: { createdAt: "desc" } });
+  return NextResponse.json(jobs.map((job) => ({
+    ...job,
+    subtotal: Number(job.subtotal),
+    discountAmount: Number(job.discountAmount),
+    vatRate: Number(job.vatRate),
+    vatAmount: Number(job.vatAmount),
+    totalAmount: Number(job.totalAmount),
+    amountPaid: Number(job.amountPaid),
+    balanceDue: Number(job.balanceDue),
+    items: job.items.map((item) => ({ ...item, quantity: Number(item.quantity), unitPrice: Number(item.unitPrice), lineTotal: Number(item.lineTotal) })),
+  })));
+}
+
 export async function POST(request: Request) {
   const payload = jobSchema.safeParse(await request.json());
   if (!payload.success) return NextResponse.json({ error: payload.error.issues[0]?.message ?? "Invalid job order" }, { status: 400 });
   const input = payload.data;
+  input.client.phone = normalizeKenyanPhone(input.client.phone);
   const tenant = await prisma.tenant.findUniqueOrThrow({ where: { slug: "aluwood" } });
   const [paperTypes, finishingServices] = await Promise.all([
     prisma.paperType.findMany({ where: { tenantId: tenant.id, isActive: true } }),
