@@ -5,6 +5,8 @@ import { formatDate, formatKes } from "@/lib/format";
 import { prisma } from "@/lib/prisma";
 import { JOB_ORDER_STATUSES, type JobOrderStatus } from "@/types/poms";
 
+export const dynamic = "force-dynamic";
+
 export default async function DashboardOverviewPage() {
   const tenant = await prisma.tenant.findUniqueOrThrow({ where: { slug: "aluwood" } });
   const [storedJobs, storedInventory] = await Promise.all([
