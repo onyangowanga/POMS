@@ -56,6 +56,16 @@ export function priceLine(request: PriceLineRequest, catalog: PriceCatalog): Pri
   if (!request.quantity || request.quantity <= 0) {
     throw new PriceCalculationError("Quantity must be greater than zero");
   }
+  if (request.customUnitPrice !== undefined) {
+    if (request.customUnitPrice < 0) throw new PriceCalculationError("Custom unit price cannot be negative");
+    const lineTotal = round2(request.customUnitPrice * request.quantity);
+    return {
+      description: request.description ?? "Other service",
+      quantity: request.quantity,
+      unitPrice: request.customUnitPrice,
+      lineTotal,
+    };
+  }
   if (!request.paperTypeId && !request.finishingServiceId) {
     throw new PriceCalculationError("Each line must reference a paper type or a finishing service");
   }
@@ -110,9 +120,11 @@ export function calculateQuote(request: QuoteRequest, catalog: PriceCatalog): Qu
 
   const lines = request.lines.map((line) => priceLine(line, catalog));
   const subtotal = round2(lines.reduce((sum, line) => sum + line.lineTotal, 0));
+  const discountAmount = round2(Math.min(Math.max(request.discountAmount ?? 0, 0), subtotal));
+  const taxableSubtotal = round2(subtotal - discountAmount);
   const vatRate = request.vatRate ?? 0;
-  const vatAmount = round2((subtotal * vatRate) / 100);
-  const totalAmount = round2(subtotal + vatAmount);
+  const vatAmount = round2((taxableSubtotal * vatRate) / 100);
+  const totalAmount = round2(taxableSubtotal + vatAmount);
 
-  return { lines, subtotal, vatRate, vatAmount, totalAmount };
+  return { lines, subtotal, discountAmount, vatRate, vatAmount, totalAmount };
 }

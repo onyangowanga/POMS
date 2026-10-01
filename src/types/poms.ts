@@ -216,6 +216,7 @@ export interface JobOrder {
   status: JobOrderStatus;
   paymentStatus: PaymentStatus;
   subtotal: number;
+  discountAmount: number;
   vatRate: number;
   vatAmount: number;
   totalAmount: number;
@@ -268,6 +269,8 @@ export interface PriceLineRequest {
   finishingServiceId?: string;
   sides?: SideOption;
   quantity: number;
+  /** Used for custom "Other" services that are not in the price matrix. */
+  customUnitPrice?: number;
   /** Optional free-text override, otherwise derived from paper/finishing name */
   description?: string;
 }
@@ -285,12 +288,14 @@ export interface PricedLine {
 
 export interface QuoteRequest {
   lines: PriceLineRequest[];
+  discountAmount?: number;
   vatRate?: number;
 }
 
 export interface QuoteResult {
   lines: PricedLine[];
   subtotal: number;
+  discountAmount: number;
   vatRate: number;
   vatAmount: number;
   totalAmount: number;

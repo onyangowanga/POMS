@@ -25,20 +25,22 @@ export default function DashboardOverviewPage() {
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard label="Revenue Collected" value={formatKes(totalRevenueToday)} hint="Across all job orders" tone="success" />
+        <StatCard label="Revenue Collected" value={formatKes(totalRevenueToday)} hint="Across all job orders" tone="success" href="/dashboard/jobs" />
         <StatCard
           label="Outstanding Receivables"
           value={formatKes(outstandingReceivables)}
           hint="Unpaid + partial balances"
           tone="warning"
+          href="/dashboard/clients"
         />
         <StatCard
           label="Low Stock Alerts"
           value={String(lowStockItems.length)}
           hint={lowStockItems.map((i) => i.name).join(", ") || "All stock healthy"}
           tone={lowStockItems.length > 0 ? "danger" : "default"}
+          href="/dashboard/inventory"
         />
-        <StatCard label="Active Job Orders" value={String(DEMO_JOB_ORDERS.length)} hint="Open across the pipeline" />
+        <StatCard label="Active Job Orders" value={String(DEMO_JOB_ORDERS.length)} hint="Open across the pipeline" href="/dashboard/jobs" />
       </div>
 
       <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
@@ -62,7 +64,7 @@ export default function DashboardOverviewPage() {
             View all
           </Link>
         </div>
-        <table className="w-full text-left text-sm">
+        <table className="hidden w-full text-left text-sm md:table">
           <thead className="text-xs uppercase tracking-wide text-slate-500">
             <tr>
               <th className="px-5 py-3">Job #</th>
@@ -96,6 +98,31 @@ export default function DashboardOverviewPage() {
             ))}
           </tbody>
         </table>
+        <div className="space-y-3 p-4 md:hidden">
+          {DEMO_JOB_ORDERS.map((job) => (
+            <Link
+              key={job.id}
+              href={`/dashboard/jobs/${job.id}`}
+              className="block rounded-lg border border-slate-200 p-4 transition hover:border-blue-300 hover:bg-blue-50/40"
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="font-semibold text-slate-900">{job.jobNumber}</p>
+                  <p className="mt-1 text-sm text-slate-600">{clientName(job.clientId)}</p>
+                </div>
+                <JobStatusBadge status={job.status} />
+              </div>
+              <div className="mt-3 grid grid-cols-2 gap-3 text-sm">
+                <div><p className="text-xs text-slate-500">Total</p><p className="font-medium">{formatKes(job.totalAmount)}</p></div>
+                <div><p className="text-xs text-slate-500">Balance</p><p className="font-medium">{formatKes(job.balanceDue)}</p></div>
+              </div>
+              <div className="mt-3 flex items-center justify-between text-xs text-slate-500">
+                <PaymentStatusBadge status={job.paymentStatus} />
+                <span>{formatDate(job.createdAt)}</span>
+              </div>
+            </Link>
+          ))}
+        </div>
       </div>
     </div>
   );

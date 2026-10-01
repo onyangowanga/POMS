@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { JobStatusBadge, PaymentStatusBadge } from "@/components/dashboard/StatusBadges";
+import { JobStatusActions } from "@/components/dashboard/JobStatusActions";
 import { formatDate, formatKes } from "@/lib/format";
 import { DEMO_CLIENTS, DEMO_JOB_ORDERS } from "@/lib/sample-data";
 import { JOB_ORDER_STATUSES } from "@/types/poms";
@@ -45,6 +46,8 @@ export default async function JobOrderDetailPage({ params }: { params: Promise<{
         </ol>
       </div>
 
+      <JobStatusActions initialStatus={job.status} />
+
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="lg:col-span-2 space-y-6">
           <div className="rounded-xl border border-slate-200 bg-white shadow-sm">
@@ -53,7 +56,8 @@ export default async function JobOrderDetailPage({ params }: { params: Promise<{
             </div>
             <div className="px-5 py-4 text-sm text-slate-600">{job.notes || "No description provided."}</div>
             {job.items.length > 0 ? (
-              <table className="w-full text-left text-sm">
+              <div className="overflow-x-auto">
+                <table className="min-w-[620px] w-full text-left text-sm">
                 <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
                   <tr>
                     <th className="px-5 py-2">Item</th>
@@ -74,7 +78,8 @@ export default async function JobOrderDetailPage({ params }: { params: Promise<{
                     </tr>
                   ))}
                 </tbody>
-              </table>
+                </table>
+              </div>
             ) : null}
           </div>
         </div>

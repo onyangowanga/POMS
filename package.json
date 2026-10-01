@@ -10,7 +10,10 @@
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
     "db:seed": "tsx prisma/seed.ts",
-    "db:studio": "prisma studio"
+    "db:studio": "prisma studio",
+    "deploy:frontend": "bash scripts/deploy-frontend.sh",
+    "deploy:backend": "bash scripts/deploy-backend.sh",
+    "deploy:all": "bash scripts/deploy-all.sh"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"

@@ -12,7 +12,7 @@ export default function StaffPage() {
         <p className="text-sm text-slate-500">Role-based access: Owner, Admin, Accountant, Production, Worker.</p>
       </div>
       <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
-        <table className="w-full text-left text-sm">
+        <table className="hidden w-full text-left text-sm md:table">
           <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
             <tr>
               <th className="px-5 py-3">Name</th>
@@ -30,6 +30,17 @@ export default function StaffPage() {
             ))}
           </tbody>
         </table>
+        <div className="space-y-3 p-4 md:hidden">
+          {DEMO_STAFF.map((staff) => (
+            <article key={staff.email} className="rounded-lg border border-slate-200 p-4">
+              <div className="flex items-start justify-between gap-3">
+                <h2 className="font-semibold text-slate-900">{staff.name}</h2>
+                <span className="rounded-full bg-slate-100 px-2 py-1 text-xs font-medium text-slate-600">{staff.role}</span>
+              </div>
+              <p className="mt-2 break-all text-sm text-slate-500">{staff.email}</p>
+            </article>
+          ))}
+        </div>
       </div>
     </div>
   );
