@@ -19,6 +19,8 @@ export default async function JobOrderDetailPage({ params }: { params: Promise<{
     totalAmount: Number(storedJob.totalAmount),
     amountPaid: Number(storedJob.amountPaid),
     balanceDue: Number(storedJob.balanceDue),
+    createdAt: storedJob.createdAt.toISOString(),
+    updatedAt: storedJob.updatedAt.toISOString(),
     items: storedJob.items.map((item) => ({ ...item, quantity: Number(item.quantity), unitPrice: Number(item.unitPrice), lineTotal: Number(item.lineTotal) })),
   };
   const client = job.client;
