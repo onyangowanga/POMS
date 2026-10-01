@@ -2,21 +2,23 @@ import Link from "next/link";
 import { StatCard } from "@/components/dashboard/StatCard";
 import { JobStatusBadge, PaymentStatusBadge } from "@/components/dashboard/StatusBadges";
 import { formatDate, formatKes } from "@/lib/format";
-import { DEMO_CLIENTS, DEMO_INVENTORY, DEMO_JOB_ORDERS } from "@/lib/sample-data";
+import { prisma } from "@/lib/prisma";
 import { JOB_ORDER_STATUSES, type JobOrderStatus } from "@/types/poms";
 
-function clientName(clientId: string): string {
-  return DEMO_CLIENTS.find((c) => c.id === clientId)?.name ?? "Unknown client";
-}
-
-export default function DashboardOverviewPage() {
-  const totalRevenueToday = DEMO_JOB_ORDERS.reduce((sum, job) => sum + job.amountPaid, 0);
-  const outstandingReceivables = DEMO_JOB_ORDERS.reduce((sum, job) => sum + job.balanceDue, 0);
-  const lowStockItems = DEMO_INVENTORY.filter((item) => item.quantityOnHand <= item.reorderLevel);
+export default async function DashboardOverviewPage() {
+  const tenant = await prisma.tenant.findUniqueOrThrow({ where: { slug: "aluwood" } });
+  const [storedJobs, storedInventory] = await Promise.all([
+    prisma.jobOrder.findMany({ where: { tenantId: tenant.id }, include: { client: true }, orderBy: { createdAt: "desc" }, take: 10 }),
+    prisma.inventoryItem.findMany({ where: { tenantId: tenant.id }, orderBy: { name: "asc" } }),
+  ]);
+  const jobs = storedJobs.map((job) => ({ ...job, totalAmount: Number(job.totalAmount), amountPaid: Number(job.amountPaid), balanceDue: Number(job.balanceDue), createdAt: job.createdAt.toISOString() }));
+  const lowStockItems = storedInventory.filter((item) => Number(item.quantityOnHand) <= Number(item.reorderLevel));
+  const totalRevenueToday = jobs.reduce((sum, job) => sum + job.amountPaid, 0);
+  const outstandingReceivables = jobs.reduce((sum, job) => sum + job.balanceDue, 0);
 
   const pipelineCounts = JOB_ORDER_STATUSES.reduce(
     (acc, status) => {
-      acc[status] = DEMO_JOB_ORDERS.filter((job) => job.status === status).length;
+      acc[status] = jobs.filter((job) => job.status === status).length;
       return acc;
     },
     {} as Record<JobOrderStatus, number>,
@@ -40,7 +42,7 @@ export default function DashboardOverviewPage() {
           tone={lowStockItems.length > 0 ? "danger" : "default"}
           href="/dashboard/inventory"
         />
-        <StatCard label="Active Job Orders" value={String(DEMO_JOB_ORDERS.length)} hint="Open across the pipeline" href="/dashboard/jobs" />
+        <StatCard label="Active Job Orders" value={String(jobs.length)} hint="Open across the pipeline" href="/dashboard/jobs" />
       </div>
 
       <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
@@ -77,14 +79,14 @@ export default function DashboardOverviewPage() {
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
-            {DEMO_JOB_ORDERS.map((job) => (
+            {jobs.map((job) => (
               <tr key={job.id} className="hover:bg-slate-50">
                 <td className="px-5 py-3 font-medium text-slate-900">
                   <Link href={`/dashboard/jobs/${job.id}`} className="hover:underline">
                     {job.jobNumber}
                   </Link>
                 </td>
-                <td className="px-5 py-3 text-slate-600">{clientName(job.clientId)}</td>
+                <td className="px-5 py-3 text-slate-600">{job.client.name}</td>
                 <td className="px-5 py-3">
                   <JobStatusBadge status={job.status} />
                 </td>
@@ -99,7 +101,7 @@ export default function DashboardOverviewPage() {
           </tbody>
         </table>
         <div className="space-y-3 p-4 md:hidden">
-          {DEMO_JOB_ORDERS.map((job) => (
+          {jobs.map((job) => (
             <Link
               key={job.id}
               href={`/dashboard/jobs/${job.id}`}
@@ -108,7 +110,7 @@ export default function DashboardOverviewPage() {
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <p className="font-semibold text-slate-900">{job.jobNumber}</p>
-                  <p className="mt-1 text-sm text-slate-600">{clientName(job.clientId)}</p>
+                  <p className="mt-1 text-sm text-slate-600">{job.client.name}</p>
                 </div>
                 <JobStatusBadge status={job.status} />
               </div>
